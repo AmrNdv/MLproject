@@ -645,9 +645,9 @@ if __name__ == '__main__':
                    'Cloud9am', 'Cloud3pm', 'CloudsinJakarta', 'RainToday', 'RainTomorrow']
     df = handle_manual(df)
     df = handle_NaNs(df,categorials)
-    df = categorize_df(df,categorials,8,bins_mode='equal_range')
+    df = categorize_df(df,categorials,4,bins_mode='equal_range')
     preview_dependency_between_categorials(df,
-                                          'MaxTemp_categorized',
+                                          'Rainfall_categorized',
                                            'RainTomorrow','Yes')
     # df = pd.read_csv(path_to_file, encoding='ISO-8859-1')
     # plot_scatter(df ,'Pressure3pm','Pressure9am')
