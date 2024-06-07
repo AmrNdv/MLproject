@@ -1,3 +1,4 @@
+import pandas
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -458,9 +459,196 @@ def main(path_to_file):
     feature_extraction(df)
 
 
-def check_dependency_between_categorials(df:pd.DataFrame, categorial1,categorial2):
+def preview_dependency_between_categorials(df:pd.DataFrame, categorial1:str,
+                                           categorial2:str,meassured_category:str):
+    """"
+    Description:
+    inputs:
+    1. path to file - string
+    2. categorial1 - first categorial feature
+    3. categiral2 - second categorial feature
+    4. meassured_category - one category of the second variable  (e.g "Yes")
+        that we want to show how it behave in different categories of categorial1 
+    """
+    contingency_table = pd.crosstab(df[categorial1], df[categorial2])
+    chi2, p, dof, expected = chi2_contingency(contingency_table)
+    # Calculate the probabilities for feature value 2
+    rates = contingency_table[meassured_category] / contingency_table.sum(axis=1)
+
+    # Calculate the overall probability of 'yes'
+    overall_yes_rate = df[categorial2].value_counts(normalize=True)[meassured_category]
+
+    # Add the overall probability to the rates series
+    rates['Ovel All'] = overall_yes_rate
+
+    # Plot the rates
+    rates.plot(kind='bar', color='blue', alpha=0.7, label=f'Probability of {categorial2}-{meassured_category}'
+                                                          f' for different categories of {categorial1}')
+    plt.title(f'Rate of {meassured_category} for {categorial2} for Each Category of {categorial1}',
+              fontsize=16)
+    plt.xlabel(f'{categorial1} Categories')
+    plt.ylabel(f'Probability of {categorial2}')
+    plt.xticks(rotation=0)
+
+    yaxis_ceil = min(np.ceil(rates.max() * 10)/10+0.15,1) # Automatic definition of graph y axis size
+    plt.ylim(0, yaxis_ceil)
+
+    plt.axhline(y=overall_yes_rate, color='red', linestyle='--', linewidth=1,
+                label=f'Overall Probability of {categorial2}-{meassured_category} ')
+
+    plt.text(len(rates) - 1, overall_yes_rate + 0.005, f'{overall_yes_rate:.2f}', color='red', ha='center')
+
+    for i in range(len(rates) - 1):
+        plt.text(i, rates.iloc[i] + 0.005, f'{rates.iloc[i]:.2f}', color='black', ha='center')
+    plt.legend(fontsize=16,loc='upper left')
+
+    plt.show()
+
+def handle_manual(df:pd.DataFrame):
+    """
+    function that handle all the manual changes in the dataset.
+    """
+    df['Rainfall'] = df['Rainfall'].replace(-3, 0)
+    df['Cloud9am'] = df['Cloud9am'].replace(999,7)
+    df['WindDir3pm'] = df['WindDir3pm'].replace('zzzzzzzzzz…...', 'N')
+    df = df.drop('CloudsinJakarta', axis=1)
+    return df
+
+def handle_NaNs(df:pd.DataFrame, categorials:list,debug_mode:bool=False):
+    """
+    This function fills NaN values in each column with the mean value of the column.
+    The mean value is calculated separately for rows where the 'Raintomorrow' property is 'yes' or 'no'.
+    """
+    df_copy = df.copy()
+
+    for column in df_copy.columns:
+        if column in categorials: # skip already categorials (manually selected)
+            pass
+        else:
+            if df_copy[column].isna().any():
+                print(f'{column} has {df_copy[column].isna().sum()} missing values') if debug_mode else None  # Debug - print column name
+
+                # Calculate the mean values separately for 'yes' and 'no' in 'Raintomorrow'
+                mean_yes = df_copy[df_copy['RainTomorrow'] == 'Yes'][column].mean()
+                print(f'mean yes : {mean_yes}') if debug_mode else None  # Debug - print column mean yes
+
+                mean_no = df_copy[df_copy['RainTomorrow'] == 'No'][column].mean()
+                print(f'mean no : {mean_no}') if debug_mode else None  # Debug - print column mean no
+
+                # Replace NaN values with the corresponding mean value
+                df_copy.loc[(df_copy['RainTomorrow'] == 'Yes') & (df_copy[column].isna()), column] = mean_yes
+                df_copy.loc[(df_copy['RainTomorrow'] == 'No') & (df_copy[column].isna()), column] = mean_no
+            else:
+                print(f'{column} has no missing values') if debug_mode else None  # Debug - print column name
+
+    return df_copy
+
+
+def categorize_df(df: pd.DataFrame, categorials:list, N:int,
+                  bins_mode:str='equal_range',df_mode:str='add'):
+    """
+    This function takes a DataFrame and makes all the non-categorical columns categorical.
+    It converts the continuous values in the column to one of N categories representing the value magnitude.
+    1 is the smallest, N is the largest.
+    The function has 2 modes of bin separating:
+    1. equal_range: each bin represents the same range of data // default mode
+    2. equal_bins: each bin has the same amount of data
+    The function has 2 modes of df management:
+    1. replace - replace the original column with the categorical column
+    2. add - add the new categorical column with the name feature_categorical
+    """
+    def handle_rainFall(df_copy):
+        """
+        Function that handles rainfall manually - make sure first column is 0-1 mm of rain.
+        """
+        if 'Rainfall' in df.columns:
+            new_column_name = 'Rainfall_categorized'
+
+            if bins_mode == 'equal_range':
+                # Define custom bins for 'Rainfall'
+                rainfall_min = df['Rainfall'].min()
+                rainfall_max = df['Rainfall'].max()
+                custom_bins = [rainfall_min, 1] + list(np.linspace(1, rainfall_max, N))
+
+                # Remove duplicate bin edges if any
+                custom_bins = sorted(set(custom_bins))
+
+                df_copy[new_column_name] = pd.cut(df['Rainfall'], bins=custom_bins, labels=False, include_lowest=True) + 1
+                print(f"Custom Equal Bins for 'Rainfall': {custom_bins}")
+            elif bins_mode == 'equal_bins':
+                    # Define custom bin for 0-1 and use qcut for the remaining bins
+                    custom_bins = [0, 1] + list(pd.qcut(df['Rainfall'][df['Rainfall'] > 1], q=N - 1,
+                                                       duplicates='drop').unique().categories.right)
+                    df_copy[new_column_name] = pd.cut(df['Rainfall'], bins=custom_bins, labels=False, include_lowest=True) + 1
+                    print(f"Custom Equal Bins for 'Rainfall': {custom_bins}")
+            # Manage the DataFrame mode
+            if df_mode == 'replace':
+                df_copy['Rainfall'] = df_copy[new_column_name]
+                df_copy.drop(columns=[new_column_name], inplace=True)
+            elif df_mode == 'add':
+                # Reorder columns to place new column next to the original
+                cols = list(df_copy.columns)
+                original_idx = cols.index('Rainfall')
+                cols.insert(original_idx + 1, cols.pop(cols.index(new_column_name)))
+                df_copy = df_copy[cols]
+            else:
+                raise ValueError("Invalid df_mode. Choose 'replace' or 'add'.")
+        return df_copy
+    # Make a copy of the DataFrame to avoid modifying the original one
+    df_copy = df.copy()
+
+    df_copy = handle_rainFall(df_copy)
+    # Iterate over columns to categorize
+    for column in df.columns:
+        # not handle categorials and Rainfall (specific handling)
+        if column not in categorials  and column != 'Rainfall':
+            # Define new column name
+            print(column)
+            new_column_name = f"{column}_categorized"
+            if bins_mode == 'equal_range':
+                # Categorize the non-NaN values into N categories of equal range
+                df_copy[new_column_name], bins = pd.cut(df_copy[column], bins=N, labels=False, retbins=True)
+                df_copy[new_column_name] += 1
+                print(f"Equal Range Bins for {column}: {bins}")
+            elif bins_mode == 'equal_bins':
+                # Categorize the non-NaN values into N categories with equal number of data points
+                df_copy[new_column_name], bins = pd.qcut(df_copy[column], q=N, labels=False, retbins=True)
+                df_copy[new_column_name] += 1
+                print(f"Equal Size Bins for {column}: {bins}")
+            else:
+                raise ValueError("Invalid mode. Choose 'equal_range' or 'equal_bins'.")
+
+            # Convert the new column to integer type for categorization
+            df_copy[new_column_name] = df_copy[new_column_name].astype(int)
+
+            # Manage the DataFrame mode
+            if df_mode == 'replace':
+                df_copy[column] = df_copy[new_column_name]
+                df_copy.drop(columns=[new_column_name], inplace=True)
+            elif df_mode == 'add':
+                # Keep both original and new categorized column
+                # Reorder columns to place new column next to the original
+                cols = list(df_copy.columns)
+                original_idx = cols.index(column)
+                cols.insert(original_idx + 1, cols.pop(cols.index(new_column_name)))
+                df_copy = df_copy[cols]
+            else:
+                raise ValueError("Invalid df_mode. Choose 'replace' or 'add'.")
+
+    return df_copy
 
 
 if __name__ == '__main__':
     path_to_file = r'E:\t2\machine\project\part_1\pythonProject\Xy_train.csv'
-    main(path_to_file=path_to_file)
+    df = pd.read_csv(path_to_file, encoding='ISO-8859-1')
+    categorials = ['Location', 'WindGustDir', 'WindDir3pm', 'WindDir9am',
+                   'Cloud9am', 'Cloud3pm', 'CloudsinJakarta', 'RainToday', 'RainTomorrow']
+    df = handle_manual(df)
+    df = handle_NaNs(df,categorials)
+    df = categorize_df(df,categorials,8,bins_mode='equal_range')
+    preview_dependency_between_categorials(df,
+                                          'MaxTemp_categorized',
+                                           'RainTomorrow','Yes')
+    # df = pd.read_csv(path_to_file, encoding='ISO-8859-1')
+    # plot_scatter(df ,'Pressure3pm','Pressure9am')
+#CloudsinJakarta
