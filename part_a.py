@@ -482,12 +482,12 @@ def preview_dependency_between_categorials(df:pd.DataFrame, categorial1:str,
     rates['Ovel All'] = overall_yes_rate
 
     # Plot the rates
-    rates.plot(kind='bar', color='blue', alpha=0.7, label=f'Probability of {categorial2}-{meassured_category}'
+    rates.plot(kind='bar',fontsize=16, color='blue', alpha=0.7, label=f'Probability of {categorial2}-{meassured_category}'
                                                           f' for different categories of {categorial1}')
     plt.title(f'Rate of {meassured_category} for {categorial2} for Each Category of {categorial1}',
               fontsize=16)
-    plt.xlabel(f'{categorial1} Categories')
-    plt.ylabel(f'Probability of {categorial2}')
+    plt.xlabel(f'{categorial1} Categories',fontsize=16)
+    plt.ylabel(f'Probability of {categorial2}',fontsize=16)
     plt.xticks(rotation=0)
 
     yaxis_ceil = min(np.ceil(rates.max() * 10)/10+0.15,1) # Automatic definition of graph y axis size
@@ -496,14 +496,15 @@ def preview_dependency_between_categorials(df:pd.DataFrame, categorial1:str,
     plt.axhline(y=overall_yes_rate, color='red', linestyle='--', linewidth=1,
                 label=f'Overall Probability of {categorial2}-{meassured_category} ')
 
-    plt.text(len(rates) - 1, overall_yes_rate + 0.005, f'{overall_yes_rate:.2f}', color='red', ha='center')
+    plt.text(len(rates) - 1, overall_yes_rate + 0.005, f'{overall_yes_rate:.2f}', color='red', ha='center'
+             ,fontsize=18)
 
     for i in range(len(rates) - 1):
-        plt.text(i, rates.iloc[i] + 0.005, f'{rates.iloc[i]:.2f}', color='black', ha='center')
+        plt.text(i, rates.iloc[i] + 0.005, f'{rates.iloc[i]:.2f}', color='black', ha='center'
+                 ,fontsize=18)
     plt.legend(fontsize=16,loc='upper left')
 
     plt.show()
-
 def handle_manual(df:pd.DataFrame):
     """
     function that handle all the manual changes in the dataset.
@@ -511,7 +512,7 @@ def handle_manual(df:pd.DataFrame):
     df['Rainfall'] = df['Rainfall'].replace(-3, 0)
     df['Cloud9am'] = df['Cloud9am'].replace(999,7)
     df['WindDir3pm'] = df['WindDir3pm'].replace('zzzzzzzzzz…...', 'N')
-    df = df.drop('CloudsinJakarta', axis=1)
+    # df = df.drop('CloudsinJakarta', axis=1)
     return df
 
 def handle_NaNs(df:pd.DataFrame, categorials:list,debug_mode:bool=False):
@@ -542,7 +543,6 @@ def handle_NaNs(df:pd.DataFrame, categorials:list,debug_mode:bool=False):
                 print(f'{column} has no missing values') if debug_mode else None  # Debug - print column name
 
     return df_copy
-
 
 def categorize_df(df: pd.DataFrame, categorials:list, N:int,
                   bins_mode:str='equal_range',df_mode:str='add'):
@@ -645,10 +645,10 @@ if __name__ == '__main__':
                    'Cloud9am', 'Cloud3pm', 'CloudsinJakarta', 'RainToday', 'RainTomorrow']
     df = handle_manual(df)
     df = handle_NaNs(df,categorials)
-    df = categorize_df(df,categorials,4,bins_mode='equal_range')
+    df = categorize_df(df,categorials,8,bins_mode='equal_range')
     preview_dependency_between_categorials(df,
-                                          'Rainfall_categorized',
-                                           'RainTomorrow','Yes')
+                                          'WindDir9am',
+                                           'WindDir3pm','E')
     # df = pd.read_csv(path_to_file, encoding='ISO-8859-1')
     # plot_scatter(df ,'Pressure3pm','Pressure9am')
 #CloudsinJakarta
