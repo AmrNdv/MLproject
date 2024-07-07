@@ -910,14 +910,13 @@ def check_dependencies_procedure(path_to_file):
 def main(path_to_file):
 
     df = read_data(path_to_file)
-    # data_exploratory(df)
+    data_exploratory(df)
     df = handle_missing_and_extreme_values(df)
-    # feature_extraction(df)
+    feature_extraction(df)
     df_with_dummies = pd.get_dummies(df, drop_first=True)
     df_with_dummies = validate_categorical_dummy(df_with_dummies)
     print(df.columns)
     feature_selection(df_with_dummies)
-
 
 if __name__ == '__main__':
     path_to_file = r'E:\t2\machine\project\part_1\pythonProject\Xy_train.csv'

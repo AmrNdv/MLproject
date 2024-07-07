@@ -1,15 +1,23 @@
-import pandas
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 from scipy.stats import pearsonr, skew, normaltest, chi2_contingency, f_oneway
 import statsmodels.api as sm
+import statsmodels.formula.api as smf
+
+
 from statsmodels.formula.api import ols
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 
-
+ALL_VARIABLES = {
+    'target': ["RainTomorrow"],
+    'continuous': ["MinTemp", "MaxTemp", "Rainfall", "Evaporation", "Sunshine", "WindGustSpeed", "WindSpeed9am",
+                   "WindSpeed3pm", "Humidity9am", "Humidity3pm", "Pressure9am", "Pressure3pm", "Temp9am", "Temp3pm"],
+    'categorical': ["RainToday", "Location", "WindGustDir", "WindDir9am", "WindDir3pm", "Cloud9am", "Cloud3pm",
+                    "CloudsinJakarta"]
+}
 ### Statistical tests functions ###
 
 # Single variable
@@ -18,24 +26,24 @@ def check_normal_distribution(df: pd.DataFrame, x_value: str, p_value_threshold:
     data = df[x_value].dropna(inplace=False)
     stat, p = normaltest(data)
     if p <= p_value_threshold:
-        print(f'Normal distribution test: {x_value} is distributed normally, p-value: {round(p,2)}')
+        print(f'Normal distribution test: {x_value} is distributed normally, p-value: {round(p,5)}')
     else:
-        print(f'Normal distribution test: {x_value} is NOT distributed normally, p-value: {round(p,2)}')
+        print(f'Normal distribution test: {x_value} is NOT distributed normally, p-value: {round(p,5)}')
 
 
 def check_skewness_distribution(df: pd.DataFrame, x_value: str):
     data = df[x_value].dropna(inplace=False)
     skewness = skew(data)
     if -0.5 <= skewness <= 0.5:
-        print(f'Skewness distribution test: {x_value} data is approximately symmetric, skewness: {round(skewness,2)}')
+        print(f'Skewness distribution test: {x_value} data is approximately symmetric, skewness: {round(skewness,5)}')
     elif 0.5 < skewness <= 1:
-        print(f'Skewness distribution test: {x_value} data is moderately right skewed, skewness: {round(skewness,2)}')
+        print(f'Skewness distribution test: {x_value} data is moderately right skewed, skewness: {round(skewness,5)}')
     elif skewness > 1:
-        print(f'Skewness distribution test: {x_value} data is highly right skewed, skewness: {round(skewness,2)}')
+        print(f'Skewness distribution test: {x_value} data is highly right skewed, skewness: {round(skewness,5)}')
     elif -0.5 >= skewness > -1:
-        print(f'Skewness distribution test: {x_value} data is moderately left skewed, skewness: {round(skewness,2)}')
+        print(f'Skewness distribution test: {x_value} data is moderately left skewed, skewness: {round(skewness,5)}')
     elif skewness < -1:
-        print(f'Skewness distribution test: {x_value} data is highly left skewed, skewness: {round(skewness,2)}')
+        print(f'Skewness distribution test: {x_value} data is highly left skewed, skewness: {round(skewness,5)}')
 
 
 # Multiple variables
@@ -44,9 +52,9 @@ def check_chi2_square(df:pd.DataFrame, x_value: str, y_value: str, p_value_thres
     crosstab = pd.crosstab(df[x_value], df[y_value])
     chi2, p, dof, expected = chi2_contingency(crosstab)
     if p <= p_value_threshold:
-        print(f'Chi square test: The correlation between {x_value}, {y_value} are statistically significant, p-value: {round(p,2)}')
+        print(f'Chi square test: The correlation between {x_value}, {y_value} are statistically significant, p-value: {round(p,5)}')
     else:
-        print(f'Chi square test: The correlation between {x_value}, {y_value} are NOT statistically significant, p-value: {round(p,2)}')
+        print(f'Chi square test: The correlation between {x_value}, {y_value} are NOT statistically significant, p-value: {round(p,5)}')
 
 
 def calculate_pearson_coefficient(df: pd.DataFrame, x_value: str, y_value: str, p_value_threshold: float = 0.05):
@@ -54,33 +62,39 @@ def calculate_pearson_coefficient(df: pd.DataFrame, x_value: str, y_value: str, 
     data = data.dropna(subset=y_value, inplace=False)
     correlation, p_value = pearsonr(data[x_value], data[y_value])
     if p_value <= p_value_threshold:
-        print(f'Pearson test: The correlation between {x_value}, {y_value} are statistically significant, p-values: {round(p_value,2)}')
+        print(f'Pearson test: The correlation between {x_value}, {y_value} are statistically significant, p-values: {round(p_value,5)}')
     else:
-        print(f'Pearson test: The correlation between {x_value}, {y_value} are NOT statistically significant, p-values: {round(p_value,2)}')
+        print(f'Pearson test: The correlation between {x_value}, {y_value} are NOT statistically significant, p-values: {round(p_value,5)}')
 
 
 ### plots functions ###
 
 # Single Variable
 
-def create_box_plot(df: pd.DataFrame, y_label: str, show: bool = True):
+def create_box_plot(df: pd.DataFrame, y_label: str, show: bool = True, title: str = None):
     # Box plots for Continuous variables
     if not show:
         return
 
     boxPlot = plt.axes()
     sns.boxplot(y=y_label, data=df)
-    boxPlot.set_title(f'{y_label} Boxplot')
+    if title:
+        boxPlot.set_title(title)
+    else:
+        boxPlot.set_title(f'{y_label} Boxplot')
     plt.show()
 
 
-def create_histogram(df: pd.DataFrame, y_label: str, bins: int = 10, show: bool = True):
+def create_histogram(df: pd.DataFrame, y_label: str, bins: int = 10, show: bool = True, title: str = None):
     # Histogram - Continuous variables
     if not show:
         return
 
     plt.hist(df[y_label], bins=bins, density=True)
-    plt.title(f"{y_label} histogram", fontsize=20)
+    if title:
+        plt.title(title)
+    else:
+        plt.title(f"{y_label} histogram", fontsize=20)
     plt.ylabel('frequency', fontsize=15)
     sns.histplot(df[y_label], bins=20, kde=True, fill=True, color='blue', line_kws={'color': 'red'})
     plt.xlabel(f'Amount of {y_label}', fontsize=15)
@@ -184,7 +198,6 @@ def plot_graphs(df: pd.DataFrame, variables_dict: dict, show: bool = True):
                         cat_pairs.add((var2,variable))
                         heat_map_categorical(df, variable, var2, show)
 
-
 def show_graphs_and_statistical_test_for_specific_variables(df: pd.DataFrame, variables_correlation_focus: dict, show: bool = True):
     #After first analyse of graphs - sending here specific variables and connection to represent correlations and graphs.
 
@@ -213,24 +226,18 @@ def describe_variables(df: pd.DataFrame, variables_dict:dict):
                 check_normal_distribution(df=df, x_value=variable)
                 check_skewness_distribution(df=df, x_value=variable)
 
+def data_exploratory(df: pd.DataFrame, show_graphs: bool):
 
-def data_exploratory(df: pd.DataFrame):
-    all_variables = {
-        'target': ["RainTomorrow"],
-        'continuous': ["MinTemp", "MaxTemp", "Rainfall", "Evaporation", "Sunshine", "WindGustSpeed", "WindSpeed9am", "WindSpeed3pm", "Humidity9am", "Humidity3pm", "Pressure9am","Pressure3pm","Temp9am","Temp3pm"],
-        'categorical': ["RainToday", "Location", "WindGustDir", "WindDir9am", "WindDir3pm", "Cloud9am", "Cloud3pm", "CloudsinJakarta"]
-    }
-
-    plot_graphs(df=df, variables_dict=all_variables, show=False)
-    describe_variables(df=df, variables_dict=all_variables)
-    plot_heatmap(df=df, variables_dict=all_variables, show=False)
+    plot_graphs(df=df, variables_dict=ALL_VARIABLES, show=show_graphs)
+    describe_variables(df=df, variables_dict=ALL_VARIABLES)
+    plot_heatmap(df=df, variables_dict=ALL_VARIABLES, show=show_graphs)
 
     variables_correlation_focus = {"categorical-categorical":[],
                                     "continuous-continuous": [("Temp9am","MinTemp"),("Temp3pm","MaxTemp"), ("WindSpeed3pm","WindGustSpeed")],
                                    "categorical-continuous": [("Sunshine","Cloud3pm")]}
     show_graphs_and_statistical_test_for_specific_variables(df=df,
                                                             variables_correlation_focus=variables_correlation_focus,
-                                                            show=False)
+                                                            show=show_graphs)
 
 
 def handle_missing_and_extreme_values(df: pd.DataFrame):
@@ -303,7 +310,7 @@ def handle_missing_and_extreme_values(df: pd.DataFrame):
               f'   e) Samples size of consistency when WinDir9am equals to WindDir3pm in Canberra and No Rain:'
               f'{len(df_consistence_wind_dir_in_canberra_and_no_rain)}'
               f'   f) Ratio of e/c:'
-              f'{round(len(df_consistence_wind_dir_in_canberra_and_no_rain)/len(df[canberra_and_no_rain]),2)}\n'
+              f'{round(len(df_consistence_wind_dir_in_canberra_and_no_rain)/len(df[canberra_and_no_rain]),5)}\n'
               f'   g) Samples size of samples from Canberra, No Rain and WindDir9am is N (North) {len(df_in_canberra_and_no_rain_and_wind_dir_9am_is_North)}'
               f'   g) Consistency when WinDir9am equals to WindDir3pm in Canberra, No Rain and WinDir9am is N (North): {len(canberra_and_no_rain_and_wind_dir_9am_equals_3pm_and_is_N)}'
               f'   g) Ratio of g/e: {round(len(df_consistence_wind_dir_in_canberra_and_North_wind_dir_9am) / len(df_in_canberra_and_no_rain_and_wind_dir_9am_is_North), 2)}')
@@ -311,7 +318,7 @@ def handle_missing_and_extreme_values(df: pd.DataFrame):
               f'Reason: Seems to have high probability when grouped those values above so.\n'
               f'North is most common among this data type.')
 
-        create_count_plot(df=df_in_canberra_and_no_rain_and_wind_dir_9am_is_North, y_label="WindDir3pm", show=True)
+        create_count_plot(df=df_in_canberra_and_no_rain_and_wind_dir_9am_is_North, y_label="WindDir3pm", show=False)
         # By this plot we can see that most of samples in canberra, no rain and windDir9am is N - WindDir3pm value is N as well. So we can assume to fill in this value with 'N'.
 
         # Set the 'zzz..' value to 'N'
@@ -412,10 +419,21 @@ def handle_missing_and_extreme_values(df: pd.DataFrame):
     print(f'-Evaporation-')
     print(f'Total missing values: 1239\n'
           f'Evaporation is a bit skewed and not symmetric, there are a lot of outliers (box-plot).\n'
-          f'Therefore, we will add missing values by median.')
-    evaporation_median = df['Evaporation'].median()
-    df['Evaporation'].fillna(evaporation_median, inplace=True)
-
+          f'Therefore, we will add missing values by median.'
+          f'Showing plot of Box-Plot and Histogram when By RainTomorrow')
+    create_histogram(df=df[df['RainTomorrow'] == "Yes"], y_label="Evaporation",  title="Evaporation Histogram, RainTomorrow='Yes'", show=False)
+    create_box_plot(df=df[df['RainTomorrow'] == "Yes"], y_label="Evaporation",  title="Evaporation Boxplot, RainTomorrow='Yes'", show=False)
+    create_histogram(df=df[df['RainTomorrow'] == "No"], y_label="Evaporation",  title="Evaporation Histogram, RainTomorrow='No'", show=False)
+    create_box_plot(df=df[df['RainTomorrow'] == "No"], y_label="Evaporation", title="Evaporation Boxplot, RainTomorrow='No'", show=False)
+    print(f'Calculating Normal and Skewed Distribution p-value:')
+    check_normal_distribution(df=df[df['RainTomorrow'] == 'Yes'], x_value="Evaporation")
+    check_skewness_distribution(df=df[df['RainTomorrow'] == 'Yes'], x_value="Evaporation")
+    evaporation_raintomorrow_yes_median = df[df['RainTomorrow'] == "Yes"]['Evaporation'].median()
+    evaporation_raintomorrow_no_median = df[df['RainTomorrow'] == "No"]['Evaporation'].median()
+    df.loc[df["RainTomorrow"] == "Yes", 'Evaporation'] = df.loc[df["RainTomorrow"] == "Yes", 'Evaporation'].fillna(
+        evaporation_raintomorrow_yes_median)
+    df.loc[df["RainTomorrow"] == "No", 'Evaporation'] = df.loc[df["RainTomorrow"] == "No", 'Evaporation'].fillna(
+        evaporation_raintomorrow_no_median)
 
     #Sunshine - 1850 missing values, values make sense to reality
 
@@ -424,19 +442,246 @@ def handle_missing_and_extreme_values(df: pd.DataFrame):
     print(f'-Sunshine-')
     print(f'Total missing values: 1850\n'
           f'Sunshine is a not skewed and looks symmetric and passed normal dist test,there are no outliers (box-plot).\n'
-          f'Therefore, we will add missing values by mean.')
-    sunshine_mean = df['Sunshine'].mean()
-    df['Sunshine'].fillna(sunshine_mean, inplace=True)
+          f'Therefore, we will add missing values by mean.'
+          f'Showing plot of Box-Plot and Histogram when By RainTomorrow')
+    create_histogram(df=df[df['RainTomorrow'] == "Yes"], y_label="Sunshine", title="Sunshine Histogram, RainTomorrow='Yes'", show=False)
+    create_box_plot(df=df[df['RainTomorrow'] == "Yes"], y_label="Sunshine", title="Sunshine Boxplot, RainTomorrow='Yes'", show=False)
+    create_histogram(df=df[df['RainTomorrow'] == "No"], y_label="Sunshine",  title="Sunshine Histogram, RainTomorrow='No'",show=False)
+    create_box_plot(df=df[df['RainTomorrow'] == "No"], y_label="Sunshine",  title="Sunshine Boxplot, RainTomorrow='No'", show=False)
 
+    print(f'Calculating Normal and Skewed Distribution p-value:')
+    check_normal_distribution(df=df[df['RainTomorrow'] == 'Yes'], x_value="Sunshine")
+    check_skewness_distribution(df=df[df['RainTomorrow'] == 'Yes'], x_value="Sunshine")
+
+    sunshine_raintomorrow_yes_mean = df[df['RainTomorrow'] == "Yes"]['Sunshine'].mean()
+    sunshine_raintomorrow_no_mean = df[df['RainTomorrow'] == "No"]['Sunshine'].mean()
+    df.loc[df["RainTomorrow"] == "Yes", 'Sunshine'] = df.loc[df["RainTomorrow"] == "Yes", 'Sunshine'].fillna(
+        sunshine_raintomorrow_yes_mean)
+    df.loc[df["RainTomorrow"] == "No", 'Sunshine'] = df.loc[df["RainTomorrow"] == "No", 'Sunshine'].fillna(
+        sunshine_raintomorrow_no_mean)
+
+    return df
+
+def categorized_features(df: pd.DataFrame):
+
+    def categorized_column_by_equal_range(column: str, num_of_bins: int):
+        # Categorize the non-NaN values into N categories of equal range
+
+        new_column_name = f'{column}_Category'
+        df[column], bins = pd.cut(df[column], bins=num_of_bins, labels=False, retbins=True)
+        df[column] += 1
+        df[column].astype(str)
+        print(f"Equal Range Bins for {column}: {bins}")
+
+
+    def categorized_column_by_equal_bins(column: str, num_of_bins: int):
+        # Categorize the non-NaN values into N categories with equal number of data points
+
+
+        new_column_name = f'{column}_Category'
+        df[new_column_name], bins = pd.qcut(df[column], q=num_of_bins, labels=False, retbins=True)
+        df[new_column_name] += 1
+        print(f"Equal Size Bins for {column}: {bins}")
+
+
+    def categorize_temp(temp):
+        if temp < 7.5:
+            return 'cold'
+        elif 7.5 <= temp < 30:
+            return 'mild'
+        else:
+            return 'hot'
+
+
+    def categorize_rainfall(rainfall):
+        if rainfall == 0:
+            return 'none'
+        elif 0 < rainfall <= 20:
+            return 'light'
+        elif 20 < rainfall <= 60:
+            return 'moderate'
+        else:
+            return 'heavy'
+
+
+    def categorize_evaporation(evaporation):
+        if evaporation == 0:
+            return 'dry'
+        elif 0 < evaporation <= 2:
+            return 'minimal'
+        elif 2 < evaporation <= 6:
+            return 'average'
+        else:
+            return 'significant'
+
+
+    def categorize_sunshine(sunshine):
+        if sunshine == 0:
+            return 'no_sun'
+        elif 0 < sunshine <= 3:
+            return 'little_sun'
+        elif 4 < sunshine <= 7:
+            return 'some_sun'
+        else:
+            return 'a_lot_of_sun'
+
+
+    def categorize_wind_speed(speed):
+        if speed < 20:
+            return 'calm'
+        elif 20 <= speed < 40:
+            return 'moderate_breeze'
+        elif 40 <= speed < 61:
+            return 'strong_breeze'
+        else:
+            return 'gale'
+
+
+    def categorize_humidity(humidity):
+        if humidity < 25:
+            return 'dry'
+        elif 25 <= humidity < 60:
+            return 'comfortable'
+        else:
+            return 'very_humid'
+
+
+    def categorize_pressure(pressure):
+        if pressure < 1000:
+            return 'low'
+        elif 1000 <= pressure < 1030:
+            return 'normal'
+        else:
+            return 'high'
+
+
+    def categorize_cloud(cloud):
+        if cloud == 0:
+            return 'clear'
+        elif 1 <= cloud <= 4:
+            return 'partly_cloudy'
+        elif 5 <= cloud <= 7:
+            return 'mostly_cloudy'
+        else:
+            return 'overcast'
+
+
+    categorized_column_by_equal_bins(column='MaxTemp', num_of_bins=5)
+    categorized_column_by_equal_bins(column='MinTemp', num_of_bins=5)
+    categorized_column_by_equal_range(column='WindGustSpeed', num_of_bins=5)
+    df['Temp9am_Category'] = df['Temp9am'].apply(categorize_temp)
+    df['Temp3pm_Category'] = df['Temp3pm'].apply(categorize_temp)
+    df['Rainfall_Category'] = df['Rainfall'].apply(categorize_rainfall)
+    df['Evaporation_Category'] = df['Evaporation'].apply(categorize_evaporation)
+    df['Sunshine_Category'] = df['Sunshine'].apply(categorize_sunshine)
+    df['WindSpeed9am_Category'] = df['WindSpeed9am'].apply(categorize_wind_speed)
+    df['WindSpeed3pm_Category'] = df['WindSpeed3pm'].apply(categorize_wind_speed)
+    df['Humidity9am_Category'] = df['Humidity9am'].apply(categorize_humidity)
+    df['Humidity3pm_Category'] = df['Humidity3pm'].apply(categorize_humidity)
+    df['Pressure9am_Category'] = df['Pressure9am'].apply(categorize_pressure)
+    df['Pressure3pm_Category'] = df['Pressure3pm'].apply(categorize_pressure)
+    df['Cloud9am_Category'] = df['Cloud9am'].apply(categorize_cloud)
+    df['Cloud3pm_Category'] = df['Cloud3pm'].apply(categorize_cloud)
+    df.loc[df['Location'] == "SydneyAirport", "Location"] = "Sydney"
+
+def create_new_features_combinations(df: pd.DataFrame):
+    def _are_opposite_direction(direction_a, direction_b):
+        opposite_dir_map = {"N":"S", "S":"N", "E":"W","W":"E"}
+        return opposite_dir_map.get(direction_a) == direction_b
+
+    df['TempRange'] = df['MaxTemp'] - df['MinTemp']
+    df['TempChange'] = df['Temp3pm'] - df['Temp9am']
+    df['HumidityChange'] = df['Humidity3pm'] - df['Humidity9am']
+    df['AvgWindSpeed'] = (df['WindSpeed9am'] + df['WindSpeed3pm']) / 2
+    df['WindGustRatio'] = df['WindGustSpeed'] / df['AvgWindSpeed']
+    df['PressureChange'] = df['Pressure3pm'] - df['Pressure9am']
+    df['SameWindDir'] = (df['WindDir9am'] == df['WindDir3pm'])
+    df['OppositeWindDirDiff'] = df.apply(lambda row: _are_opposite_direction(row['WindDir9am'], row['WindDir3pm']), axis=1)
+    df['RainToday'] = df['RainToday'].map({"Yes":1,"No":0})
+    df['RainTomorrow'] = df['RainTomorrow'].map({"Yes":1,"No":0})
 
 def feature_extraction(df: pd.DataFrame):
-    pass
+    categorized_features(df)
+    create_new_features_combinations(df)
+
+def calculate_vif(input_data, dependent_col):
+    x_vars=input_data.drop([dependent_col], axis=1)
+    xvar_names=x_vars.columns
+    for i in range(0,xvar_names.shape[0]):
+        y=x_vars[xvar_names[i]]
+        x=x_vars[xvar_names.drop(xvar_names[i])]
+        rsq=smf.ols(formula="y~x", data=x_vars).fit().rsquared
+        vif=round(1/(1-rsq),2)
+        print (xvar_names[i], " VIF = " , vif)
+
+def feature_selection(df: pd.DataFrame):
+    def _forwardSelection(df, response, significance_level=0.05, r_squared_threshold=0.001):
+        selected = []
+        current_score, best_new_score = 0.0, 0.0
+        iteration = 0
+
+        while True:
+            remaining = set(df.columns) - set(selected) - {response}
+            best_candidate = None
+
+            scores_with_candidates = []
+            for candidate in remaining:
+                formula = "{} ~ {} ".format(response, ' + '.join(selected + [candidate]))
+                try:
+                    model = smf.ols(formula, df).fit()
+                    score = model.rsquared_adj
+                    if candidate in list(model.pvalues._info_axis.values):
+                        p_value = model.pvalues[candidate]
+                    elif f'{candidate}[T.True]' in list(model.pvalues._info_axis.values):
+                        p_value = model.pvalues[f'{candidate}[T.True]']
+                    else:
+                        p_value = model.pvalues[f'{candidate}[F.False]']
+                    if p_value < significance_level:
+                        scores_with_candidates.append((score, candidate))
+                except Exception as e:
+                    print(f"Skipping {candidate} due to error: {e}")
+
+            if not scores_with_candidates:
+                break
+
+            scores_with_candidates.sort()
+            best_new_score, best_candidate = scores_with_candidates.pop()
+
+            improvement = best_new_score - current_score
+            # Debugging output to trace the loop execution and variable selection
+            print(
+                f"Iteration {iteration}: Best candidate: {best_candidate}, Adjusted R-squared: {best_new_score:.4f}, Improvement: {improvement:.4f}")
+
+            if improvement > 0 and improvement > r_squared_threshold:
+                selected.append(best_candidate)
+                current_score = best_new_score
+                print(f"Selected: {best_candidate} | Adjusted R-squared: {best_new_score:.4f}")
+            elif current_score >= r_squared_threshold:
+                print(f"Stopping iterations. Final model reached adjusted R-squared threshold: {current_score:.4f}")
+                break
+            else:
+                print(f'Not Selected: {best_candidate}..')
+                break
+
+            iteration += 1
+
+        formula = "{} ~ {} ".format(response, ' + '.join(selected))
+        model = smf.ols(formula, df).fit()
+        print(f"Final model formula: {formula}")
+        return model
+
+    # Example usage
+    # final_model = _forwardSelection(df, 'RainTomorrow')
+    print(df.columns)
+    lm = _forwardSelection(df, 'RainTomorrow')
+    lm.summary()
+    print(lm.model.formula)
+    print(lm.rsquared_adj)
 
 
 def write_df_to_path(df: pd.DataFrame, path: str):
     df.to_csv(path,sep='\t')
     print(f'Wrote dataframe to {path}')
-
 
 def read_data(path_to_file: str):
     df = pd.read_csv(path_to_file,encoding='ISO-8859-1')
@@ -451,14 +696,21 @@ def read_data(path_to_file: str):
 
     return df
 
+def validate_categorical_dummy(df):
+    categorical_columns = [col for col in df.columns if 'categorical' in col.lower() or col.lower() in ALL_VARIABLES['categorical']]
+    for col in categorical_columns:
+        if col not in df.columns:  # Check if dummy variables already exist
+            dummies = pd.get_dummies(df[col], prefix=col, drop_first=True)
+            df = pd.concat([df, dummies], axis=1)
+    return df
 
-def main(path_to_file):
-    df = read_data(path_to_file)
-    data_exploratory(df)
-    handle_missing_and_extreme_values(df)
-    feature_extraction(df)
-
-
+# 5 functions that shows dependencies between variables #
+"""
+Run the function check_dependencies_procedure(path)
+with path = data frame path
+to see dependencies graph.
+please edit graph inputs inside check_dependencies_procedure function.
+"""
 def preview_dependency_between_categorials(df:pd.DataFrame, categorial1:str,
                                            categorial2:str,meassured_category:str):
     """"
@@ -468,7 +720,7 @@ def preview_dependency_between_categorials(df:pd.DataFrame, categorial1:str,
     2. categorial1 - first categorial feature
     3. categiral2 - second categorial feature
     4. meassured_category - one category of the second variable  (e.g "Yes")
-        that we want to show how it behave in different categories of categorial1 
+        that we want to show how it behave in different categories of categorial1
     """
     contingency_table = pd.crosstab(df[categorial1], df[categorial2])
     chi2, p, dof, expected = chi2_contingency(contingency_table)
@@ -505,44 +757,6 @@ def preview_dependency_between_categorials(df:pd.DataFrame, categorial1:str,
     plt.legend(fontsize=16,loc='upper left')
 
     plt.show()
-def handle_manual(df:pd.DataFrame):
-    """
-    function that handle all the manual changes in the dataset.
-    """
-    df['Rainfall'] = df['Rainfall'].replace(-3, 0)
-    df['Cloud9am'] = df['Cloud9am'].replace(999,7)
-    df['WindDir3pm'] = df['WindDir3pm'].replace('zzzzzzzzzz…...', 'N')
-    # df = df.drop('CloudsinJakarta', axis=1)
-    return df
-
-def handle_NaNs(df:pd.DataFrame, categorials:list,debug_mode:bool=False):
-    """
-    This function fills NaN values in each column with the mean value of the column.
-    The mean value is calculated separately for rows where the 'Raintomorrow' property is 'yes' or 'no'.
-    """
-    df_copy = df.copy()
-
-    for column in df_copy.columns:
-        if column in categorials: # skip already categorials (manually selected)
-            pass
-        else:
-            if df_copy[column].isna().any():
-                print(f'{column} has {df_copy[column].isna().sum()} missing values') if debug_mode else None  # Debug - print column name
-
-                # Calculate the mean values separately for 'yes' and 'no' in 'Raintomorrow'
-                mean_yes = df_copy[df_copy['RainTomorrow'] == 'Yes'][column].mean()
-                print(f'mean yes : {mean_yes}') if debug_mode else None  # Debug - print column mean yes
-
-                mean_no = df_copy[df_copy['RainTomorrow'] == 'No'][column].mean()
-                print(f'mean no : {mean_no}') if debug_mode else None  # Debug - print column mean no
-
-                # Replace NaN values with the corresponding mean value
-                df_copy.loc[(df_copy['RainTomorrow'] == 'Yes') & (df_copy[column].isna()), column] = mean_yes
-                df_copy.loc[(df_copy['RainTomorrow'] == 'No') & (df_copy[column].isna()), column] = mean_no
-            else:
-                print(f'{column} has no missing values') if debug_mode else None  # Debug - print column name
-
-    return df_copy
 
 def categorize_df(df: pd.DataFrame, categorials:list, N:int,
                   bins_mode:str='equal_range',df_mode:str='add'):
@@ -637,18 +851,77 @@ def categorize_df(df: pd.DataFrame, categorials:list, N:int,
 
     return df_copy
 
-
-if __name__ == '__main__':
-    path_to_file = r'E:\t2\machine\project\part_1\pythonProject\Xy_train.csv'
+def check_dependencies_procedure(path_to_file):
+    """
+    Stand Alone function that produce dependencies graphs as shown in the project.
+    Need to edit the parameters from inside the function
+    :return:
+    """
     df = pd.read_csv(path_to_file, encoding='ISO-8859-1')
     categorials = ['Location', 'WindGustDir', 'WindDir3pm', 'WindDir9am',
                    'Cloud9am', 'Cloud3pm', 'CloudsinJakarta', 'RainToday', 'RainTomorrow']
-    df = handle_manual(df)
-    df = handle_NaNs(df,categorials)
-    df = categorize_df(df,categorials,8,bins_mode='equal_range')
+
+    df = handle_missing_and_extreme_values(df)
+    df = categorize_df(df,categorials,4,bins_mode='equal_range')
     preview_dependency_between_categorials(df,
-                                          'WindDir9am',
-                                           'WindDir3pm','E')
-    # df = pd.read_csv(path_to_file, encoding='ISO-8859-1')
-    # plot_scatter(df ,'Pressure3pm','Pressure9am')
-#CloudsinJakarta
+                                          'Rainfall_categorized',
+                                           'RainTomorrow','Yes')
+
+# UnUsed code
+# def handle_manual(df:pd.DataFrame):
+#     """
+#     function that handle all the manual changes in the dataset.
+#     """
+#     df['Rainfall'] = df['Rainfall'].replace(-3, 0)
+#     df['Cloud9am'] = df['Cloud9am'].replace(999,7)
+#     df['WindDir3pm'] = df['WindDir3pm'].replace('zzzzzzzzzz…...', 'N')
+#     # df = df.drop('CloudsinJakarta', axis=1)
+#     return df
+#
+# def handle_NaNs(df:pd.DataFrame, categorials:list,debug_mode:bool=False):
+#     """
+#     This function fills NaN values in each column with the mean value of the column.
+#     The mean value is calculated separately for rows where the 'Raintomorrow' property is 'yes' or 'no'.
+#     """
+#     df_copy = df.copy()
+#
+#     for column in df_copy.columns:
+#         if column in categorials: # skip already categorials (manually selected)
+#             pass
+#         else:
+#             if df_copy[column].isna().any():
+#                 print(f'{column} has {df_copy[column].isna().sum()} missing values') if debug_mode else None  # Debug - print column name
+#
+#                 # Calculate the mean values separately for 'yes' and 'no' in 'Raintomorrow'
+#                 mean_yes = df_copy[df_copy['RainTomorrow'] == 'Yes'][column].mean()
+#                 print(f'mean yes : {mean_yes}') if debug_mode else None  # Debug - print column mean yes
+#
+#                 mean_no = df_copy[df_copy['RainTomorrow'] == 'No'][column].mean()
+#                 print(f'mean no : {mean_no}') if debug_mode else None  # Debug - print column mean no
+#
+#                 # Replace NaN values with the corresponding mean value
+#                 df_copy.loc[(df_copy['RainTomorrow'] == 'Yes') & (df_copy[column].isna()), column] = mean_yes
+#                 df_copy.loc[(df_copy['RainTomorrow'] == 'No') & (df_copy[column].isna()), column] = mean_no
+#             else:
+#                 print(f'{column} has no missing values') if debug_mode else None  # Debug - print column name
+#
+#     return df_copy
+
+def main(path_to_file: str, show_graphs: bool):
+
+    df = read_data(path_to_file)
+    data_exploratory(df, show_graphs)
+    df = handle_missing_and_extreme_values(df)
+    feature_extraction(df)
+    df_with_dummies = pd.get_dummies(df, drop_first=True)
+    df_with_dummies = validate_categorical_dummy(df_with_dummies)
+    print(df.columns)
+    feature_selection(df_with_dummies)
+    if show_graphs:
+        check_dependencies_procedure(path_to_file) # Edit variables to show from inside the function
+
+if __name__ == '__main__':
+    path_to_file: str = r'C:\Users\Ron Gabo\Desktop\ml_course\Xy_train.csv'
+    show_graphs: bool = False # If want to view graphs during code running - set value as True, else - False.
+    main(path_to_file=path_to_file, show_graphs=show_graphs)
+
