@@ -1,0 +1,246 @@
+{
+    "best_params": {
+        "activation": "logistic",
+        "alpha": 0.001,
+        "hidden_layer_sizes": [
+            72,
+            36,
+            18,
+            9
+        ],
+        "learning_rate_init": 0.001,
+        "max_iter": 500,
+        "solver": "adam"
+    },
+    "best_score": 0.6213983757982077,
+    "all_results": [
+        {
+            "params": {
+                "activation": "logistic",
+                "alpha": 0.001,
+                "hidden_layer_sizes": [
+                    72,
+                    36,
+                    18,
+                    9
+                ],
+                "learning_rate_init": 0.001,
+                "max_iter": 100,
+                "solver": "adam"
+            },
+            "mean_test_accuracy": 0.8181696394100841,
+            "mean_test_f1": 0.5982859890246448,
+            "rank_test_accuracy": 10,
+            "rank_test_f1": 10
+        },
+        {
+            "params": {
+                "activation": "logistic",
+                "alpha": 0.001,
+                "hidden_layer_sizes": [
+                    72,
+                    36,
+                    18,
+                    9
+                ],
+                "learning_rate_init": 0.001,
+                "max_iter": 200,
+                "solver": "adam"
+            },
+            "mean_test_accuracy": 0.8237265462126476,
+            "mean_test_f1": 0.6018341743372255,
+            "rank_test_accuracy": 9,
+            "rank_test_f1": 9
+        },
+        {
+            "params": {
+                "activation": "logistic",
+                "alpha": 0.001,
+                "hidden_layer_sizes": [
+                    72,
+                    36,
+                    18,
+                    9
+                ],
+                "learning_rate_init": 0.001,
+                "max_iter": 300,
+                "solver": "adam"
+            },
+            "mean_test_accuracy": 0.8290049030962858,
+            "mean_test_f1": 0.6098291792990678,
+            "rank_test_accuracy": 2,
+            "rank_test_f1": 5
+        },
+        {
+            "params": {
+                "activation": "logistic",
+                "alpha": 0.001,
+                "hidden_layer_sizes": [
+                    72,
+                    36,
+                    18,
+                    9
+                ],
+                "learning_rate_init": 0.001,
+                "max_iter": 500,
+                "solver": "adam"
+            },
+            "mean_test_accuracy": 0.8273380433943325,
+            "mean_test_f1": 0.6213983757982077,
+            "rank_test_accuracy": 6,
+            "rank_test_f1": 1
+        },
+        {
+            "params": {
+                "activation": "logistic",
+                "alpha": 0.001,
+                "hidden_layer_sizes": [
+                    72,
+                    36,
+                    18,
+                    9
+                ],
+                "learning_rate_init": 0.00105,
+                "max_iter": 100,
+                "solver": "adam"
+            },
+            "mean_test_accuracy": 0.8180306540035518,
+            "mean_test_f1": 0.598169236370668,
+            "rank_test_accuracy": 11,
+            "rank_test_f1": 11
+        },
+        {
+            "params": {
+                "activation": "logistic",
+                "alpha": 0.001,
+                "hidden_layer_sizes": [
+                    72,
+                    36,
+                    18,
+                    9
+                ],
+                "learning_rate_init": 0.00105,
+                "max_iter": 200,
+                "solver": "adam"
+            },
+            "mean_test_accuracy": 0.8237267392479344,
+            "mean_test_f1": 0.6034425476696278,
+            "rank_test_accuracy": 8,
+            "rank_test_f1": 7
+        },
+        {
+            "params": {
+                "activation": "logistic",
+                "alpha": 0.001,
+                "hidden_layer_sizes": [
+                    72,
+                    36,
+                    18,
+                    9
+                ],
+                "learning_rate_init": 0.00105,
+                "max_iter": 300,
+                "solver": "adam"
+            },
+            "mean_test_accuracy": 0.8294215697629527,
+            "mean_test_f1": 0.6099827021543927,
+            "rank_test_accuracy": 1,
+            "rank_test_f1": 4
+        },
+        {
+            "params": {
+                "activation": "logistic",
+                "alpha": 0.001,
+                "hidden_layer_sizes": [
+                    72,
+                    36,
+                    18,
+                    9
+                ],
+                "learning_rate_init": 0.00105,
+                "max_iter": 500,
+                "solver": "adam"
+            },
+            "mean_test_accuracy": 0.8276157246544669,
+            "mean_test_f1": 0.6175598772861167,
+            "rank_test_accuracy": 5,
+            "rank_test_f1": 2
+        },
+        {
+            "params": {
+                "activation": "logistic",
+                "alpha": 0.001,
+                "hidden_layer_sizes": [
+                    72,
+                    36,
+                    18,
+                    9
+                ],
+                "learning_rate_init": 0.00108,
+                "max_iter": 100,
+                "solver": "adam"
+            },
+            "mean_test_accuracy": 0.817613697783955,
+            "mean_test_f1": 0.596909499279347,
+            "rank_test_accuracy": 12,
+            "rank_test_f1": 12
+        },
+        {
+            "params": {
+                "activation": "logistic",
+                "alpha": 0.001,
+                "hidden_layer_sizes": [
+                    72,
+                    36,
+                    18,
+                    9
+                ],
+                "learning_rate_init": 0.00108,
+                "max_iter": 200,
+                "solver": "adam"
+            },
+            "mean_test_accuracy": 0.8238657246544667,
+            "mean_test_f1": 0.6033045628653467,
+            "rank_test_accuracy": 7,
+            "rank_test_f1": 8
+        },
+        {
+            "params": {
+                "activation": "logistic",
+                "alpha": 0.001,
+                "hidden_layer_sizes": [
+                    72,
+                    36,
+                    18,
+                    9
+                ],
+                "learning_rate_init": 0.00108,
+                "max_iter": 300,
+                "solver": "adam"
+            },
+            "mean_test_accuracy": 0.8283099760636243,
+            "mean_test_f1": 0.6071357783498706,
+            "rank_test_accuracy": 3,
+            "rank_test_f1": 6
+        },
+        {
+            "params": {
+                "activation": "logistic",
+                "alpha": 0.001,
+                "hidden_layer_sizes": [
+                    72,
+                    36,
+                    18,
+                    9
+                ],
+                "learning_rate_init": 0.00108,
+                "max_iter": 500,
+                "solver": "adam"
+            },
+            "mean_test_accuracy": 0.8277544205080689,
+            "mean_test_f1": 0.6171821360227157,
+            "rank_test_accuracy": 4,
+            "rank_test_f1": 3
+        }
+    ]
+}

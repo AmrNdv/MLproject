@@ -1,15 +1,15 @@
+import copy
+
 import pandas as pd
 import numpy as np
 from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import train_test_split, GridSearchCV, KFold
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
-from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
-
-import json
+from sklearn.metrics import accuracy_score, f1_score,precision_score,recall_score, confusion_matrix
 import time
-
 import matplotlib.pyplot as plt
 import seaborn as sns
+
 def handle_manual(df:pd.DataFrame):
     """
     function that handle all the manual changes in the dataset.
@@ -165,103 +165,200 @@ def categorize_df(df: pd.DataFrame, categorials:list, N:int,
 
 
 if __name__ == '__main__':
-    NormalizationMethod = 'MinMaxScaler'
-
-
+    # file params:
+    PrePrepareData = True
+    PrepareData = True
+    splitType = 'cache' #original or from cache
+    RonData = False
+    singleTest = False
+    GridSearch = True
+    ## Data loading:
     path_to_file = r'E:\t2\machine\project\part_1\pythonProject\Xy_train.csv'
-    df = pd.read_csv(path_to_file, encoding='ISO-8859-1')
-    categorials = ['Location', 'WindGustDir', 'WindDir3pm', 'WindDir9am',
-                   'Cloud9am', 'Cloud3pm', 'CloudsinJakarta', 'RainToday', 'RainTomorrow']
-    df = handle_manual(df)
-    df = handle_NaNs(df,categorials)
-    df = pd.get_dummies(df,columns =['WindGustDir','WindDir9am','WindDir3pm','Location'])
-
-    X = df.drop('RainTomorrow', 1).values
-    Y = df['RainTomorrow'].values
-
-    if NormalizationMethod == 'MinMaxScaler':
-        minmax_scaler = MinMaxScaler()
-        X_normalized = minmax_scaler.fit_transform(X)
-        Y_normalized = Y
-    elif NormalizationMethod == 'StandardScaler':
-        standard_scaler = StandardScaler()
-        X_normalized = standard_scaler.fit_transform(X)
-        Y_normalized = Y
 
 
-    X_train, X_test, Y_train, Y_test = train_test_split(X_normalized, Y_normalized, test_size=0.2, random_state=112)
-    print(f"Train size: {X_train.shape[0]}")
-    print(f"Test size: {X_test.shape[0]}")
+    if PrePrepareData:
+        ## Data Preperation part:
+        NormalizationMethod = 'MinMaxScaler'# MinMaxScalar or StandardScaler
 
-    param_grid = {
-        'hidden_layer_sizes': [(72,36,18,9)],
-        'solver': ['adam'],
-        'activation': ['logistic'],
-        'learning_rate_init': [0.00105,0.00108,0.0011],
-        'max_iter':[400,450,500,550,600],
-        'alpha': [0.001]
-    }
+        # Data analysis in case it is not yet prepared
+        df = pd.read_csv(path_to_file, encoding='ISO-8859-1')
+        categorials = ['Location', 'WindGustDir', 'WindDir3pm', 'WindDir9am',
+                       'Cloud9am', 'Cloud3pm', 'CloudsinJakarta', 'RainToday', 'RainTomorrow']
+        df = handle_manual(df)
+        df = handle_NaNs(df,categorials)
 
-    model = MLPClassifier(random_state=1, verbose=False)
-    kf = KFold(n_splits=5, shuffle=True, random_state=1)
-    # Define scoring metrics
-    scoring = {
-        'accuracy': 'accuracy',
-        'f1': 'f1'
-    }
-    print("start time: " + str(time.ctime()))
+    if PrepareData:
+        # Create dummy variables
+        df = pd.get_dummies(df,columns =['WindGustDir','WindDir9am','WindDir3pm','Location'])
 
-    # Do grid search
-    grid_search = GridSearchCV(estimator=model, param_grid=param_grid,
-                               cv=kf, scoring=scoring, n_jobs=-1,
-                             verbose=2,
-                               refit='accuracy')
-    # Fit GridSearchCV on the training data
-    grid_search.fit(X_train, Y_train)
+        # Create X and Y vectors:
+        X = df.drop('RainTomorrow', 1).values
+        Y = df['RainTomorrow'].values
+
+        # Normalize Data:
+        if NormalizationMethod == 'MinMaxScaler':
+            minmax_scaler = MinMaxScaler()
+            X_normalized = minmax_scaler.fit_transform(X)
+            Y_normalized = Y
+        elif NormalizationMethod == 'StandardScaler':
+            standard_scaler = StandardScaler()
+            X_normalized = standard_scaler.fit_transform(X)
+            Y_normalized = Y
+
+        # Split Train and Test
+        if splitType == 'original':
+            X_train, X_test, Y_train, Y_test = train_test_split(X_normalized, Y_normalized, test_size=0.1, random_state=158)
+        elif splitType == 'cache':
+            # match indices:
+            modified_i_test = pd.read_csv('Xy_post_process_internal_test.csv', encoding='ISO-8859-1')
+            modified_i_train = pd.read_csv('Xy_post_process_train.csv', encoding='ISO-8859-1')
+            df_copy= copy.deepcopy(df)
+            merged_df = df_copy.merge(modified_i_test, on=['Pressure9am', 'Pressure3pm','MinTemp','Temp9am', 'Temp3pm','Evaporation'],
+                                      how='left',indicator=True)
+            test_indices = merged_df[merged_df['_merge'] == 'both'].index.tolist()
+
+            df_copy= copy.deepcopy(df)
+            merged_df = df_copy.merge(modified_i_train, on=['Pressure9am', 'Pressure3pm', 'Temp9am', 'Temp3pm'],
+                                      how='left',indicator=True)
+            train_indices = merged_df[merged_df['_merge'] == 'both'].index.tolist()
+
+            # Check for similaity:
+            print(len(train_indices) + len(test_indices))
+            train_indices_set = set(train_indices)
+            test_indices_set = set(test_indices)
+            # Find intersection
+            common_indices = train_indices_set.intersection(test_indices_set)
+            print(common_indices)
 
 
-    # Print the best parameters and best score for the selected refit scoring method
-    print("Best Parameters:", grid_search.best_params_)
-    print("Best F1 Score (on training set):", grid_search.best_score_)
 
-    results = {
-        'best_params': grid_search.best_params_,
-        'best_score': grid_search.best_score_,
-        'all_results': []
-    }
+            # Create training and testing sets
+            X_train = (X_normalized[train_indices])
+            Y_train = (Y_normalized[train_indices])
+            X_test = (X_normalized[test_indices])
+            Y_test = (Y_normalized[test_indices])
+            print(len(test_indices))
+            print(len(train_indices))
 
-    for i in range(len(grid_search.cv_results_['params'])):
-        result = {
-            'params': grid_search.cv_results_['params'][i],
-            'mean_test_accuracy': grid_search.cv_results_['mean_test_accuracy'][i].item() if isinstance(
-                grid_search.cv_results_['mean_test_accuracy'][i], np.generic) else
-            grid_search.cv_results_['mean_test_accuracy'][i],
-            'mean_test_f1': grid_search.cv_results_['mean_test_f1'][i].item() if isinstance(
-                grid_search.cv_results_['mean_test_f1'][i], np.generic) else grid_search.cv_results_['mean_test_f1'][i],
-            'rank_test_accuracy': grid_search.cv_results_['rank_test_accuracy'][i].item() if isinstance(
-                grid_search.cv_results_['rank_test_accuracy'][i], np.generic) else
-            grid_search.cv_results_['rank_test_accuracy'][i],
-            'rank_test_f1': grid_search.cv_results_['rank_test_f1'][i].item() if isinstance(
-                grid_search.cv_results_['rank_test_f1'][i], np.generic) else grid_search.cv_results_['rank_test_f1'][i]
+    if RonData:
+        NormalizationMethod = 'MinMaxScaler'# MinMaxScalar or StandardScaler
+
+        modified_i_train = pd.read_csv('Xy_post_process_train.csv', encoding='ISO-8859-1')
+        modified_i_test = pd.read_csv('Xy_post_process_internal_test.csv', encoding='ISO-8859-1')
+        full_df = pd.concat([modified_i_train, modified_i_test],axis=0)
+        X = full_df.drop('RainTomorrow', 1).values
+        Y = full_df['RainTomorrow'].values
+        if NormalizationMethod == 'MinMaxScaler':
+            minmax_scaler = MinMaxScaler()
+            X_normalized = minmax_scaler.fit_transform(X)
+            Y_normalized = Y
+        elif NormalizationMethod == 'StandardScaler':
+            standard_scaler = StandardScaler()
+            X_normalized = standard_scaler.fit_transform(X)
+            Y_normalized = Y
+
+        X_train = X_normalized[0:len(modified_i_train)]
+        Y_train = Y_normalized[0:len(modified_i_train)]
+        X_test = X_normalized[len(modified_i_train):]
+        Y_test = Y_normalized[len(modified_i_train):]
+
+    if singleTest:
+        print("train T proportion: " + str((np.count_nonzero(Y_train == 1)) / (len(Y_train))))
+        print("test T proportion: " + str((np.count_nonzero(Y_test == 1)) / (len(Y_test))))
+
+        model = MLPClassifier(random_state=1, verbose=False)
+        model.fit(X_train, Y_train)
+
+        # Predict on the test set
+        y_pred = model.predict(X_test)
+
+        # Evaluate the model using F1 score
+        f1 = f1_score(Y_test, y_pred)
+        accuracy = accuracy_score(Y_test, y_pred)
+        precision = precision_score(Y_test, y_pred)
+        recall = recall_score(Y_test, y_pred)
+        print(f"F1 Score: {f1}")
+        print(f"Accuracy Score: {accuracy}")
+        print(f"precision: {precision}")
+        print(f"recall Score: {recall}")
+        # Predict on the training set
+        y_train_pred = model.predict(X_train)
+
+
+        # Evaluate the model using F1 score and accuracy on the training set
+        f1_train = f1_score(Y_train, y_train_pred)
+        accuracy_train = accuracy_score(Y_train, y_train_pred)
+        precision = precision_score(Y_train, y_train_pred)
+        recall = recall_score(Y_train, y_train_pred)
+        print('---')
+        print(f"Train F1 Score: {f1_train}")
+        print(f"Train Accuracy Score: {accuracy_train}")
+        print(f"Train F1 precision: {precision}")
+        print(f"Train recall Score: {recall}")
+
+        conf_matrix = confusion_matrix(Y_test, y_pred)
+
+        plt.figure(figsize=(10, 7))
+        sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', annot_kws={"size": 20})
+        plt.title('Confusion Matrix Heatmap', fontsize=24)
+        plt.xlabel('Predicted', fontsize=24)
+        plt.ylabel('Actual', fontsize=24)
+        plt.xticks(fontsize=24)
+        plt.yticks(fontsize=24)
+        plt.show()
+    # Do Grid Search:
+    if GridSearch:
+        param_grid = {
+            'solver': ['adam'],
+            'hidden_layer_sizes': [200,250,(36,18),(36,18,3)],
+            'activation': ['relu', 'tanh', 'logistic','identity','softmax'],
+            'learning_rate_init': [0.001],
+            'max_iter':[500],
         }
-        result['params'] = {key: value.item() if isinstance(value, np.generic) else value for key, value in
-                            result['params'].items()}
-        results['all_results'].append(result)
+        # Set model
+        model = MLPClassifier(random_state=1, verbose=False)
+        kf = KFold(n_splits=5, shuffle=True, random_state=1)
+        # Define scoring metrics
+        print("start time: " + str(time.ctime()))
 
+        # # Define grid search
 
-    with open('grid_search_results.json', 'w') as f:
-        json.dump(results, f, indent=4)
+        # grid_search = GridSearchCV(estimator=model, param_grid=param_grid,
+        #                            cv=kf, scoring='f1', verbose=2)
+        # #
+        # # Do the actual grid
+        # grid_search.fit(X_train, Y_train)
+        # results = pd.DataFrame(grid_search.cv_results_)
+        # results.to_csv('grid_search5.csv', index=False)
 
-    # Evaluate the best model on the test set
-    best_model = grid_search.best_estimator_
-    Y_pred = best_model.predict(X_test)
+        results = pd.read_csv('grid_search5.csv')
+        # Filter the relevant columns
+        results = results[['param_hidden_layer_sizes', 'param_activation', 'mean_test_score']]
+        results_pivot = results.pivot('param_hidden_layer_sizes', 'param_activation', 'mean_test_score')
 
-    # Calculate and print the chosen metrics on the test set
-    accuracy = accuracy_score(Y_test, Y_pred)
-    f1 = f1_score(Y_test, Y_pred)
+        # Plot the heatmap
+        plt.figure(figsize=(8, 6))
+        sns.heatmap(results_pivot, annot=True, fmt=".3f", cmap="viridis", annot_kws={"size": 20})
+        plt.title('Grid Search f1 Heatmap', fontsize=24)
+        plt.xlabel('learning rate', fontsize=24)
+        plt.ylabel('param_hidden_layer_sizes', fontsize=24)
+        plt.show()
 
-    print(f"Test Accuracy: {accuracy}")
-    print(f"Test F1 Score: {f1}")
-    print("finish time: " + str(time.ctime()))
+        # Print the best parameters and best score for the selected refit scoring method
+        print("Best Parameters:", grid_search.best_params_)
+        print("Best F1 Score (on training set):", grid_search.best_score_)
+
+        # Show best results from grid search:
+        best_model = grid_search.best_estimator_
+        Y_pred = best_model.predict(X_test)
+
+        # Calculate and print the chosen metrics on the test set
+        accuracy = accuracy_score(Y_test, Y_pred)
+        f1 = f1_score(Y_test, Y_pred)
+
+        print(f"Test Accuracy: {accuracy}")
+        print(f"Test F1 Score: {f1}")
+        print("finish time: " + str(time.ctime()))
+
 
 

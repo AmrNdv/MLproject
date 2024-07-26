@@ -1,0 +1,11 @@
+Location,MinTemp,MaxTemp,Rainfall,Evaporation,Sunshine,WindGustDir,WindGustSpeed,WindDir9am,WindDir3pm,WindSpeed9am,WindSpeed3pm,Humidity9am,Humidity3pm,Pressure9am,Pressure3pm,Cloud9am,Cloud3pm,Temp9am,Temp3pm,CloudsinJakarta,RainToday,RainTomorrow
+SydneyAirport,20,50,4,0,9,W,90,N,N,90,90,90,90,1014.3,1014.4,3,7,21,21,4,Yes,Yes
+SydneyAirport,20,50,4,0,9,W,90,N,N,90,90,90,90,1014.3,1014.4,3,7,21,21,4,Yes,Yes
+Hobart,20,50,4,0,9,W,90,N,N,90,90,90,90,1014.3,1014.4,3,7,21,21,4,Yes,Yes
+Melbourne,20,50,4,0,9,W,90,N,N,90,90,90,90,1014.3,1014.4,3,7,21,21,4,No,Yes
+Sydney,20,50,4,0,9,W,90,N,N,90,90,90,90,1014.3,1014.4,3,7,21,21,4,No,Yes
+SydneyAirport,25,90,4,0,9,W,90,N,N,90,90,90,90,1014.3,1014.4,3,7,21,21,4,No,No
+Canberra,25,90,4,0,9,W,90,N,N,90,90,90,90,1014.3,1014.4,3,7,21,21,4,No,No
+Bendigo,25,90,4,0,9,W,90,N,N,90,90,90,90,1014.3,1014.4,3,7,21,21,4,No,No
+Bendigo,25,90,4,0,9,W,90,N,N,90,90,90,90,1014.3,1014.4,3,7,21,21,4,Yes,No
+Hobart,25,90,4,0,9,W,90,N,N,90,90,90,90,1014.3,1014.4,3,7,21,21,4,No,No
