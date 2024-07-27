@@ -9,7 +9,9 @@ from sklearn.metrics import accuracy_score, f1_score,precision_score,recall_scor
 import time
 import matplotlib.pyplot as plt
 import seaborn as sns
-
+from imblearn.over_sampling import SMOTE,ADASYN,BorderlineSMOTE
+from imblearn.under_sampling import RandomUnderSampler
+import random
 def handle_manual(df:pd.DataFrame):
     """
     function that handle all the manual changes in the dataset.
@@ -166,19 +168,20 @@ def categorize_df(df: pd.DataFrame, categorials:list, N:int,
 
 if __name__ == '__main__':
     # file params:
-    PrePrepareData = True
-    PrepareData = True
-    splitType = 'cache' #original or from cache
-    RonData = False
+    PrePrepareData = False
+    PrepareData = False
+    splitType = 'cache'# original split or from cache (group split)
+    RonData = True# external pre process data - loaded from external file
+    EnableSMOTE = False # enable SMOT on data for both single test or grid search
     singleTest = False
     GridSearch = True
+    RUN_gridTest = True # if false - load results from file else run grid search and saves the results
     ## Data loading:
     path_to_file = r'E:\t2\machine\project\part_1\pythonProject\Xy_train.csv'
 
 
     if PrePrepareData:
-        ## Data Preperation part:
-        NormalizationMethod = 'MinMaxScaler'# MinMaxScalar or StandardScaler
+
 
         # Data analysis in case it is not yet prepared
         df = pd.read_csv(path_to_file, encoding='ISO-8859-1')
@@ -188,11 +191,13 @@ if __name__ == '__main__':
         df = handle_NaNs(df,categorials)
 
     if PrepareData:
+        ## Data Preperation part:
+        NormalizationMethod = 'MinMaxScaler'# MinMaxScalar or StandardScaler
         # Create dummy variables
         df = pd.get_dummies(df,columns =['WindGustDir','WindDir9am','WindDir3pm','Location'])
 
         # Create X and Y vectors:
-        X = df.drop('RainTomorrow', 1).values
+        X = df.drop('RainTomorrow', axis=1).values
         Y = df['RainTomorrow'].values
 
         # Normalize Data:
@@ -207,7 +212,8 @@ if __name__ == '__main__':
 
         # Split Train and Test
         if splitType == 'original':
-            X_train, X_test, Y_train, Y_test = train_test_split(X_normalized, Y_normalized, test_size=0.1, random_state=158)
+            random.seed() # Generates random test train split
+            X_train, X_test, Y_train, Y_test = train_test_split(X_normalized, Y_normalized, test_size=0.1, random_state=random.randint(1,10000))
         elif splitType == 'cache':
             # match indices:
             modified_i_test = pd.read_csv('Xy_post_process_internal_test.csv', encoding='ISO-8859-1')
@@ -246,7 +252,7 @@ if __name__ == '__main__':
         modified_i_train = pd.read_csv('Xy_post_process_train.csv', encoding='ISO-8859-1')
         modified_i_test = pd.read_csv('Xy_post_process_internal_test.csv', encoding='ISO-8859-1')
         full_df = pd.concat([modified_i_train, modified_i_test],axis=0)
-        X = full_df.drop('RainTomorrow', 1).values
+        X = full_df.drop('RainTomorrow',axis =  1).values
         Y = full_df['RainTomorrow'].values
         if NormalizationMethod == 'MinMaxScaler':
             minmax_scaler = MinMaxScaler()
@@ -265,9 +271,15 @@ if __name__ == '__main__':
     if singleTest:
         print("train T proportion: " + str((np.count_nonzero(Y_train == 1)) / (len(Y_train))))
         print("test T proportion: " + str((np.count_nonzero(Y_test == 1)) / (len(Y_test))))
+        model = MLPClassifier(max_iter=500,learning_rate_init=0.0010,hidden_layer_sizes=(150),random_state=1, verbose=False)
 
-        model = MLPClassifier(random_state=1, verbose=False)
-        model.fit(X_train, Y_train)
+        if EnableSMOTE:
+            smote = SMOTE()
+            X_train_smote, y_train_smote = smote.fit_resample(X_train, Y_train)
+            print("SMOTE ACTIVATED")
+            model.fit(X_train_smote, y_train_smote)
+        else:
+            model.fit(X_train, Y_train)
 
         # Predict on the test set
         y_pred = model.predict(X_test)
@@ -293,7 +305,7 @@ if __name__ == '__main__':
         print('---')
         print(f"Train F1 Score: {f1_train}")
         print(f"Train Accuracy Score: {accuracy_train}")
-        print(f"Train F1 precision: {precision}")
+        print(f"Train  precision: {precision}")
         print(f"Train recall Score: {recall}")
 
         conf_matrix = confusion_matrix(Y_test, y_pred)
@@ -309,11 +321,8 @@ if __name__ == '__main__':
     # Do Grid Search:
     if GridSearch:
         param_grid = {
-            'solver': ['adam'],
-            'hidden_layer_sizes': [200,250,(36,18),(36,18,3)],
-            'activation': ['relu', 'tanh', 'logistic','identity','softmax'],
-            'learning_rate_init': [0.001],
-            'max_iter':[500],
+            'hidden_layer_sizes': [100,200,(56,28,8),(56,28)],
+            'max_iter':[200,500,1000],
         }
         # Set model
         model = MLPClassifier(random_state=1, verbose=False)
@@ -323,17 +332,21 @@ if __name__ == '__main__':
 
         # # Define grid search
 
-        # grid_search = GridSearchCV(estimator=model, param_grid=param_grid,
-        #                            cv=kf, scoring='f1', verbose=2)
-        # #
-        # # Do the actual grid
-        # grid_search.fit(X_train, Y_train)
-        # results = pd.DataFrame(grid_search.cv_results_)
-        # results.to_csv('grid_search5.csv', index=False)
-
-        results = pd.read_csv('grid_search5.csv')
+        grid_search = GridSearchCV(estimator=model, param_grid=param_grid,
+                                   cv=kf, scoring='f1', verbose=2)
+        if RUN_gridTest:
+            if EnableSMOTE:
+                smote = SMOTE()
+                X_train_smote, y_train_smote = smote.fit_resample(X_train, Y_train)
+                grid_search.fit(X_train_smote, y_train_smote)
+            else:
+                grid_search.fit(X_train, Y_train)
+            results = pd.DataFrame(grid_search.cv_results_)
+            results.to_csv('grid_search8.csv', index=False)
+        else:
+            results = pd.read_csv('grid_search8.csv')
         # Filter the relevant columns
-        results = results[['param_hidden_layer_sizes', 'param_activation', 'mean_test_score']]
+        results = results[['param_hidden_layer_sizes', 'param_activation', 'param_learning_rate','param_max_iter','mean_test_score']]
         results_pivot = results.pivot('param_hidden_layer_sizes', 'param_activation', 'mean_test_score')
 
         # Plot the heatmap

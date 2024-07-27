@@ -5,17 +5,17 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from matplotlib import pyplot as plt
-from sklearn.metrics import accuracy_score, f1_score
-from sklearn.metrics.cluster import contingency_matrix
+from sklearn.metrics import accuracy_score, f1_score,precision_score,recall_score, confusion_matrix
+import seaborn as sns
+
 
 if __name__ == '__main__':
     PrePrepareData = True
     PrepareData = True
     DO_PCA = False
     DO_Kmeans = True
-    DO_Kmeans3d = True
-    DO_Kmeans_performanceAnalysis = True
-
+    DO_Kmeans_performanceAnalysis = False
+    DO_Kmeans_performanceAnalysis_manyClusters = True
     ## Data loading:
     path_to_file = r'E:\t2\machine\project\part_1\pythonProject\Xy_train.csv'
 
@@ -35,7 +35,7 @@ if __name__ == '__main__':
         df = pd.get_dummies(df,columns =['WindGustDir','WindDir9am','WindDir3pm','Location'])
 
         # Create X and Y vectors:
-        X = df.drop('RainTomorrow', 1)
+        X = df.drop('RainTomorrow', axis=1)
         Y = df['RainTomorrow']
 
         # Normalize Data:
@@ -85,7 +85,8 @@ if __name__ == '__main__':
 
     if DO_Kmeans:
         # Perform KMeans clustering
-        kmeans = KMeans(n_clusters=2, max_iter=300, n_init=10, random_state=42)
+        n_classes = 4
+        kmeans = KMeans(n_clusters=n_classes, max_iter=300, n_init=10, random_state=42)
         kmeans.fit(X)
         df['cluster'] = kmeans.predict(X)
 
@@ -96,17 +97,17 @@ if __name__ == '__main__':
         df_pca['cluster'] = df['cluster']
         df_pca['label'] = Y.values
 
-        colors = {0: 'blue', 1: 'green'}
+        colors = {0: 'blue', 1: 'green', 2:'red',3:'purple',4:'yellow',5:'brown',6:'black', 7:'magenta'}
         markers = {0: 'o', 1: '*'}  # Circle for label 0, star for label 1
 
         # Plot the PCA results with clusters using Matplotlib
         plt.figure(figsize=(10, 8))
-        for cluster in [0, 1]:
+        for cluster in range(n_classes):
             subset = df_pca[df_pca['cluster'] == cluster]
-            for label in [0, 1]:
+            for label in range(n_classes):
                 label_subset = subset[subset['label'] == label]
                 plt.scatter(label_subset['PC1'], label_subset['PC2'], c=colors[cluster],
-                            marker=markers[label], label=f'Cluster {cluster+1}, RainTomorrow - {str(bool(label))}', alpha=0.6)
+                            marker='o', label=f'Cluster {cluster}, RainTomorrow - {str(bool(label))}', alpha=0.6)
 
         # Plot the cluster centers
         centers_pca = pca.transform(kmeans.cluster_centers_)
@@ -146,16 +147,58 @@ if __name__ == '__main__':
         original_labels = Y.values
         predicted_labels = df['cluster']
 
+
+        predicted_labels_fixed_labels = predicted_labels.replace({0:1,1:0})
         # Adjust predicted labels to match original labels
-        contingency = contingency_matrix(original_labels, predicted_labels)
-        label_map = np.argmax(contingency, axis=1)
-        adjusted_predicted_labels = np.array([label_map[label] for label in predicted_labels])
+        conf_matrix = confusion_matrix(original_labels, predicted_labels_fixed_labels)
 
-        accuracy = accuracy_score(original_labels, adjusted_predicted_labels)
-        f1 = f1_score(original_labels, adjusted_predicted_labels)
+        f1 = f1_score(original_labels, predicted_labels_fixed_labels)
+        accuracy = accuracy_score(original_labels, predicted_labels_fixed_labels)
+        precision = precision_score(original_labels, predicted_labels_fixed_labels)
+        recall = recall_score(original_labels, predicted_labels_fixed_labels)
 
-        print(f'Accuracy: {accuracy:.2f}')
-        print(f'F1 Score: {f1:.2f}')
+        print(f"F1 Score: {f1}")
+        print(f"Accuracy Score: {accuracy}")
+        print(f"precision: {precision}")
+        print(f"recall Score: {recall}")
+
+        plt.figure(figsize=(10, 7))
+        sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', annot_kws={"size": 20})
+        plt.title('Confusion Matrix Heatmap', fontsize=24)
+        plt.xlabel('Predicted', fontsize=24)
+        plt.ylabel('Actual', fontsize=24)
+        plt.xticks(fontsize=24)
+        plt.yticks(fontsize=24)
+        plt.show()
+
+ if DO_Kmeans_performanceAnalysis_manyClusters:
+
+        original_labels = Y.values
+        predicted_labels = df['cluster']
+
+
+        predicted_labels_fixed_labels = predicted_labels.replace({0:1,1:0})
+        # Adjust predicted labels to match original labels
+        conf_matrix = confusion_matrix(original_labels, predicted_labels_fixed_labels)
+
+        f1 = f1_score(original_labels, predicted_labels_fixed_labels)
+        accuracy = accuracy_score(original_labels, predicted_labels_fixed_labels)
+        precision = precision_score(original_labels, predicted_labels_fixed_labels)
+        recall = recall_score(original_labels, predicted_labels_fixed_labels)
+
+        print(f"F1 Score: {f1}")
+        print(f"Accuracy Score: {accuracy}")
+        print(f"precision: {precision}")
+        print(f"recall Score: {recall}")
+
+        plt.figure(figsize=(10, 7))
+        sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', annot_kws={"size": 20})
+        plt.title('Confusion Matrix Heatmap', fontsize=24)
+        plt.xlabel('Predicted', fontsize=24)
+        plt.ylabel('Actual', fontsize=24)
+        plt.xticks(fontsize=24)
+        plt.yticks(fontsize=24)
+        plt.show()
 
 if DO_Kmeans3d:
     # Perform KMeans clustering
