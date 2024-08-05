@@ -1,5 +1,4 @@
 import copy
-
 import pandas as pd
 import numpy as np
 from sklearn.neural_network import MLPClassifier
@@ -168,14 +167,14 @@ def categorize_df(df: pd.DataFrame, categorials:list, N:int,
 
 if __name__ == '__main__':
     # file params:
-    PrePrepareData = False
-    PrepareData = False
+    PrePrepareData = True
+    PrepareData = True
     splitType = 'cache'# original split or from cache (group split)
-    RonData = True# external pre process data - loaded from external file
+    RonData = False # external pre process data - loaded from external file
     EnableSMOTE = False # enable SMOT on data for both single test or grid search
-    singleTest = False
-    GridSearch = True
-    RUN_gridTest = True # if false - load results from file else run grid search and saves the results
+    singleTest = True
+    GridSearch = False
+    RUN_gridTest = False # if false - load results from file else run grid search and saves the results
     ## Data loading:
     path_to_file = r'E:\t2\machine\project\part_1\pythonProject\Xy_train.csv'
 
@@ -213,7 +212,7 @@ if __name__ == '__main__':
         # Split Train and Test
         if splitType == 'original':
             random.seed() # Generates random test train split
-            X_train, X_test, Y_train, Y_test = train_test_split(X_normalized, Y_normalized, test_size=0.1, random_state=random.randint(1,10000))
+            X_train, X_test, Y_train, Y_test = train_test_split(X_normalized, Y_normalized, test_size=0.1, random_state=23)#random.randint(1,10000)
         elif splitType == 'cache':
             # match indices:
             modified_i_test = pd.read_csv('Xy_post_process_internal_test.csv', encoding='ISO-8859-1')
@@ -271,8 +270,8 @@ if __name__ == '__main__':
     if singleTest:
         print("train T proportion: " + str((np.count_nonzero(Y_train == 1)) / (len(Y_train))))
         print("test T proportion: " + str((np.count_nonzero(Y_test == 1)) / (len(Y_test))))
-        model = MLPClassifier(max_iter=500,learning_rate_init=0.0010,hidden_layer_sizes=(150),random_state=1, verbose=False)
-
+        model = MLPClassifier(random_state=1, verbose=True)
+        # max_iter=500,learning_rate_init=0.001,hidden_layer_sizes=(150),
         if EnableSMOTE:
             smote = SMOTE()
             X_train_smote, y_train_smote = smote.fit_resample(X_train, Y_train)
@@ -308,7 +307,7 @@ if __name__ == '__main__':
         print(f"Train  precision: {precision}")
         print(f"Train recall Score: {recall}")
 
-        conf_matrix = confusion_matrix(Y_test, y_pred)
+        conf_matrix = confusion_matrix(Y_train, y_train_pred)
 
         plt.figure(figsize=(10, 7))
         sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', annot_kws={"size": 20})
@@ -321,8 +320,9 @@ if __name__ == '__main__':
     # Do Grid Search:
     if GridSearch:
         param_grid = {
-            'hidden_layer_sizes': [100,200,(56,28,8),(56,28)],
-            'max_iter':[200,500,1000],
+            'hidden_layer_sizes': [100,200,(100,100),(36,18,3),(36,18)],
+            'max_iter':[200,500],
+            'activation': ['relu','tanh']
         }
         # Set model
         model = MLPClassifier(random_state=1, verbose=False)
@@ -333,7 +333,7 @@ if __name__ == '__main__':
         # # Define grid search
 
         grid_search = GridSearchCV(estimator=model, param_grid=param_grid,
-                                   cv=kf, scoring='f1', verbose=2)
+                                   cv=kf, scoring='accuracy', verbose=2)
         if RUN_gridTest:
             if EnableSMOTE:
                 smote = SMOTE()
@@ -342,9 +342,9 @@ if __name__ == '__main__':
             else:
                 grid_search.fit(X_train, Y_train)
             results = pd.DataFrame(grid_search.cv_results_)
-            results.to_csv('grid_search8.csv', index=False)
+            results.to_csv('grid_search11.csv', index=False)
         else:
-            results = pd.read_csv('grid_search8.csv')
+            results = pd.read_csv('grid_search11.csv')
         # Filter the relevant columns
         results = results[['param_hidden_layer_sizes', 'param_activation', 'param_learning_rate','param_max_iter','mean_test_score']]
         results_pivot = results.pivot('param_hidden_layer_sizes', 'param_activation', 'mean_test_score')
